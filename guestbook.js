@@ -14,7 +14,7 @@ db.exec(
 	`CREATE TABLE IF NOT EXISTS entries (
     name TEXT, content TEXT, entryId INT, comment TEXT, hidden BOOLEAN, epoch TEXT);
     CREATE TABLE IF NOT EXISTS status (
-    name TEXT UNIQUE, status BOOLEAN, int INT, text TEXT);
+    name TEXT UNIQUE, status BOOLEAN, int INTEGER, text TEXT);
     INSERT OR IGNORE INTO status (name, status)
     VALUES ('disabled', 0), ('readonly', 0), ('approval', 0); INSERT OR IGNORE INTO status (name, int) VALUES ('posts', 0);
     CREATE TABLE IF NOT EXISTS queue (
@@ -45,12 +45,13 @@ const guestbookRequiresApproval =
 
 console.log(guestbookIsDisabled, guestbookIsReadonly);
 
-const guestbookEntries = db
-	.prepare(`SELECT int FROM status WHERE name='posts'`)
-	.get().int;
-
 app.get("/", async (req, res) => {
 	if (!guestbookIsDisabled) {
+		const getEntries = await getGuestbookEntries(0, 15);
+		if (getEntries === 500) {
+			res.status(500).send();
+		}
+		res.send(getEntries);
 	} else {
 		res.status(403).send({ disabled: 1 });
 	}
@@ -93,27 +94,35 @@ app.post("/", limiter, async (req, res) => {
 	}
 });
 
+async function getGuestbookEntries(start, end) {
+	try {
+		const entries = db
+			.prepare(`SELECT * FROM entries WHERE entryId BETWEEN ? AND ?`)
+			.all(start, end);
+		console.log(entries);
+		return entries;
+	} catch (e) {
+		console.error(e);
+		return 500;
+	}
+}
+
+function getGuestbookEntryCount() {
+	return db.prepare(`SELECT int FROM status WHERE name='posts'`).get().int;
+}
+
 async function addEntryToGuestbook(name, content, epoch) {
 	try {
-		db.prepare(`INSERT INTO ? VALUES (?, ?, ?, ?, ?, ?)`, [
-			guestbookRequiresApproval === false ? "entries" : "queue",
-			name,
-			content,
-			guestbookEntries,
-			null,
-			0,
-			epoch,
-		]);
+		db.prepare(
+			`INSERT INTO ${guestbookRequiresApproval === false ? "entries" : "queue"} VALUES (?, ?, ?, ?, ?, ?)`,
+		).run(name, content, getGuestbookEntryCount(), null, 0, epoch);
+		db.prepare(`UPDATE status SET int = int + 1 WHERE name='posts'`).run();
 		return guestbookRequiresApproval === false ? 1 : 2;
 	} catch (e) {
 		console.error(e);
 		return 0;
 	}
 }
-
-console.log(
-	db.prepare(`SELECT status FROM status WHERE name='disabled';`).iterate(),
-);
 
 module.exports = app;
 
