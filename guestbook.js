@@ -7,7 +7,7 @@ const db = new Database("./guestbook.db");
 
 const limiter = rateLimit({
 	windowMs: 300 * 1000,
-	limit: 333333,
+	limit: 5,
 });
 
 
