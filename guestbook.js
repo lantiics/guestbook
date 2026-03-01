@@ -1,14 +1,16 @@
 const express = require("express");
 const Database = require("better-sqlite3");
-
+const path = require("path");
 const app = express();
 const rateLimit = require("express-rate-limit").rateLimit;
 const db = new Database("./guestbook.db");
 
 const limiter = rateLimit({
-	windowMs: 0 * 1000,
-	limit: 3,
+	windowMs: 300 * 1000,
+	limit: 333333,
 });
+
+
 
 db.exec(
 	`CREATE TABLE IF NOT EXISTS entries (
@@ -21,9 +23,15 @@ db.exec(
     name TEXT, content TEXT, entryId INT, comment TEXT, hidden BOOLEAN, epoch TEXT);`,
 );
 
+// db.exec(`DELETE FROM entries; UPDATE status SET int=0 WHERE name='posts'`)
+// ^^ getting rid of stuff during testing
+
 // disabled -> Mo entries (posts) get shown
 // readonly -> New entries aren't accepted, existing entries are still sent
 // approval -> new guestbook entries require approval
+
+// SELECT * FROM queue;
+// INSERT INTO entries SELECT * FROM queue WHERE entryId=v; DELETE FROM queue WHERE entryId=v
 
 const guestbookIsDisabled =
 	db.prepare(`SELECT status FROM status WHERE name='disabled'`).get().status ===
@@ -45,20 +53,34 @@ const guestbookRequiresApproval =
 
 console.log(guestbookIsDisabled, guestbookIsReadonly);
 
-app.get("/", async (req, res) => {
+const maxPageEntries = 15;
+const maxNameLength = 50;
+const maxContentLength = 3;
+
+app.post("/", async (req, res) => {
 	if (!guestbookIsDisabled) {
-		const getEntries = await getGuestbookEntries(0, 15);
-		if (getEntries === 500) {
-			res.status(500).send();
+		const getEntries = await getGuestbookEntries(req.body["page"] - 1);
+
+		console.log(getEntries);
+		if (parseInt(getEntries)) {
+			res.sendStatus(getEntries);
+		} else {
+			res.send(getEntries);
 		}
-		res.send(getEntries);
 	} else {
-		res.status(403).send({ disabled: 1 });
+		res.json([
+			{
+				name: "Guestbook unavailable",
+				content: "Guestbook is currently disabled and posts are not shown.",
+				entryId: "1",
+				epoch: `${Date.now()}`,
+			},
+		]);
 	}
 });
 console.log();
 
-app.post("/", limiter, async (req, res) => {
+app.put("/", limiter, async (req, res) => {
 	if (!guestbookIsDisabled && !guestbookIsReadonly) {
 		if (req.body["content"]) {
 			try {
@@ -76,6 +98,8 @@ app.post("/", limiter, async (req, res) => {
 
 					case 2:
 						res.status(202).send();
+					case 3:
+						res.status(413).send();
 				}
 			} catch (e) {
 				res.status(500).send();
@@ -93,14 +117,31 @@ app.post("/", limiter, async (req, res) => {
 		}
 	}
 });
+console.log(
+	db.prepare("SELECT COUNT(*) FROM entries WHERE hidden=0").get()["COUNT(*)"] %
+		maxPageEntries,
+);
 
-async function getGuestbookEntries(start, end) {
+async function getGuestbookEntries(page) {
 	try {
 		const entries = db
-			.prepare(`SELECT * FROM entries WHERE entryId BETWEEN ? AND ?`)
-			.all(start, end);
+			.prepare(
+				`SELECT name, content, entryId, epoch, comment FROM entries ORDER BY entryId DESC LIMIT 15 OFFSET ? `,
+			)
+			.all(page * maxPageEntries);
 		console.log(entries);
-		return entries;
+		return entries[0]
+			? entries
+			: page == 0
+				? JSON.stringify([
+						{
+							name: "guestbook",
+							content: "there arent any entries in this guestbook yet!",
+							entryId: "1",
+							epoch: `${Date.now()}`,
+						},
+					])
+				: 404;
 	} catch (e) {
 		console.error(e);
 		return 500;
@@ -113,11 +154,15 @@ function getGuestbookEntryCount() {
 
 async function addEntryToGuestbook(name, content, epoch) {
 	try {
-		db.prepare(
-			`INSERT INTO ${guestbookRequiresApproval === false ? "entries" : "queue"} VALUES (?, ?, ?, ?, ?, ?)`,
-		).run(name, content, getGuestbookEntryCount(), null, 0, epoch);
-		db.prepare(`UPDATE status SET int = int + 1 WHERE name='posts'`).run();
-		return guestbookRequiresApproval === false ? 1 : 2;
+		if (name.length < maxNameLength || content.length < maxContentLength) {
+			db.prepare(
+				`INSERT INTO ${guestbookRequiresApproval === false ? "entries" : "queue"} VALUES (?, ?, ?, ?, ?, ?)`,
+			).run(name, content, getGuestbookEntryCount(), null, 0, epoch);
+			db.prepare(`UPDATE status SET int = int + 1 WHERE name='posts'`).run();
+			return guestbookRequiresApproval === false ? 1 : 2;
+		} else {
+			return 3;
+		}
 	} catch (e) {
 		console.error(e);
 		return 0;
@@ -127,3 +172,5 @@ async function addEntryToGuestbook(name, content, epoch) {
 module.exports = app;
 
 // guestbook-wall, guestbook-entry, guestbook-entry-info, guestbook-entry-content, guestbook-entry-comment, guestbook-entry-comment-info, guestbook-entry-comment-content
+
+

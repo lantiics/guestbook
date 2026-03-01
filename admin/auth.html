@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>woof</title>
+
+		<link rel="stylesheet" href="/guestbook.css" />
+        <link rel="stylesheet" href="/style.css">
+                <script>
+            function authenticate() {
+                
+            }
+        </script>
+	</head>
+	<body>
+        <main>
+		<div id="guestbook-main-container">
+            <div>
+			<form id="authentication-form"><div id="entry-form-container">
+				<input
+					name="password"
+					placeholder="password"
+                    class="guestbook-name-input"
+					id="pwd-input" />
+				</div><button
+					type="submit"
+					value="submit"
+					onclick="const pwdObj = document.getElementById('pwd-input');
+                document.cookie= `admin=${pwdObj.value}; path=/`"
+					id="guestbook-input-submit" ></button>
+			</form></div><div>
+            </div>
+			
+		</div></main>
+	</body>
+</html>
+
+<!-- guestbook-wall, guestbook-entry, guestbook-entry-info, guestbook-entry-content, guestbook-entry-comment, guestbook-entry-comment-info, guestbook-entry-comment-content -->
