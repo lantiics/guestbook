@@ -51,9 +51,7 @@ const guestbookRequiresApproval =
 		: true;
 
 function guestbookStatus(n) {
-	return (
-		db.prepare(`SELECt status FROM status WHERE name='${n}'`).get().status === 1
-	);
+	return db.prepare(`SELECt status FROM status WHERE name='${n}'`).get().status === 1
 }
 
 console.log(guestbookStatus("approval"));
@@ -61,7 +59,7 @@ console.log(guestbookStatus("approval"));
 
 const maxPageEntries = 15;
 const maxNameLength = 50;
-const maxContentLength = 3;
+const maxContentLength = 200;
 
 app.post("/", async (req, res) => {
 	if (!(await guestbookStatus("disabled"))) {
@@ -163,7 +161,7 @@ function getGuestbookEntryCount() {
 
 async function addEntryToGuestbook(name, content, epoch) {
 	try {
-		if (name.length < maxNameLength || content.length < maxContentLength) {
+		if (name.length < maxNameLength && content.length < maxContentLength) {
 			db.prepare(
 				`INSERT INTO ${guestbookStatus("approval") === false ? "entries" : "queue"} VALUES (?, ?, ?, ?, ?, ?)`,
 			).run(name, content, getGuestbookEntryCount(), null, 0, epoch);
