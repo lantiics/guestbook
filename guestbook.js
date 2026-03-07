@@ -4,13 +4,12 @@ const path = require("path");
 const app = express();
 const rateLimit = require("express-rate-limit").rateLimit;
 const db = new Database("./guestbook.db");
+app.use("/admin", require("./admin"));
 
 const limiter = rateLimit({
 	windowMs: 300 * 1000,
 	limit: 5,
 });
-
-
 
 db.exec(
 	`CREATE TABLE IF NOT EXISTS entries (
@@ -51,14 +50,21 @@ const guestbookRequiresApproval =
 		? false
 		: true;
 
-console.log(guestbookIsDisabled, guestbookIsReadonly);
+function guestbookStatus(n) {
+	return (
+		db.prepare(`SELECt status FROM status WHERE name='${n}'`).get().status === 1
+	);
+}
+
+console.log(guestbookStatus("approval"));
+// console.log(db.prepare(`SELECT status FROM status WHERE name='approval'`).get().status === 0);
 
 const maxPageEntries = 15;
 const maxNameLength = 50;
 const maxContentLength = 3;
 
 app.post("/", async (req, res) => {
-	if (!guestbookIsDisabled) {
+	if (!(await guestbookStatus("disabled"))) {
 		const getEntries = await getGuestbookEntries(req.body["page"] - 1);
 
 		console.log(getEntries);
@@ -81,7 +87,10 @@ app.post("/", async (req, res) => {
 console.log();
 
 app.put("/", limiter, async (req, res) => {
-	if (!guestbookIsDisabled && !guestbookIsReadonly) {
+	if (
+		!(await guestbookStatus("disabled")) &&
+		!(await guestbookStatus("readonly"))
+	) {
 		if (req.body["content"]) {
 			try {
 				const addEntry = await addEntryToGuestbook(
@@ -108,9 +117,9 @@ app.put("/", limiter, async (req, res) => {
 			res.status(400).send();
 		}
 	} else {
-		if (guestbookIsDisabled) {
+		if (guestbookStatus("disabled")) {
 			res.status(403).send({ disabled: 1 });
-		} else if (guestbookIsReadonly) {
+		} else if (guestbookStatus("readonly")) {
 			res.status(403).send({ readonly: 1 });
 		} else {
 			res.sendStatus(403);
@@ -126,7 +135,7 @@ async function getGuestbookEntries(page) {
 	try {
 		const entries = db
 			.prepare(
-				`SELECT name, content, entryId, epoch, comment FROM entries ORDER BY entryId DESC LIMIT 15 OFFSET ? `,
+				`SELECT name, content, entryId, epoch, comment FROM entries WHERE hidden = 0 ORDER BY entryId DESC LIMIT 15 OFFSET ? `,
 			)
 			.all(page * maxPageEntries);
 		console.log(entries);
@@ -156,10 +165,10 @@ async function addEntryToGuestbook(name, content, epoch) {
 	try {
 		if (name.length < maxNameLength || content.length < maxContentLength) {
 			db.prepare(
-				`INSERT INTO ${guestbookRequiresApproval === false ? "entries" : "queue"} VALUES (?, ?, ?, ?, ?, ?)`,
+				`INSERT INTO ${guestbookStatus("approval") === false ? "entries" : "queue"} VALUES (?, ?, ?, ?, ?, ?)`,
 			).run(name, content, getGuestbookEntryCount(), null, 0, epoch);
 			db.prepare(`UPDATE status SET int = int + 1 WHERE name='posts'`).run();
-			return guestbookRequiresApproval === false ? 1 : 2;
+			return guestbookStatus("approval") === false ? 1 : 2;
 		} else {
 			return 3;
 		}
@@ -172,5 +181,3 @@ async function addEntryToGuestbook(name, content, epoch) {
 module.exports = app;
 
 // guestbook-wall, guestbook-entry, guestbook-entry-info, guestbook-entry-content, guestbook-entry-comment, guestbook-entry-comment-info, guestbook-entry-comment-content
-
-

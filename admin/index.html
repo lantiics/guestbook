@@ -5,51 +5,472 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>woof</title>
 
-		<link rel="stylesheet" href="/guestbook.css" />
-        <link rel="stylesheet" href="/style.css">
-        
+		<link rel="stylesheet" href="/admin.css" />
+		<link rel="stylesheet" href="/style.css" />
 	</head>
 	<body>
-        <main>
-		<div id="guestbook-main-container">
-            <div>
-			<!-- <form id="guestbook-entry-form"><div id="entry-form-container">
-				<input
-					id="name-input"
-					name="name"
-					placeholder="name (optional)"
-                    class="guestbook-name-input"
-					id="guestbook-name-input" />
-				<textarea
-					name="content"
-					required="true"
-					id="entry-input"
-					rows="4"
-					wrap="hard"
-					spellcheck="false"
-					placeholder="introduce yourself"
-                    class="guestbook-content-input"
-					id="guestbook-content-input"></textarea>
-				<input
-					type="submit"
-					value="submit"
-					
-					id="guestbook-input-submit" /></div>
-			</form> -->
-        </div>
-            <div>
-                <p>meow</p>
-            </div>
-			
-		</div><div class="guestbook-wall" id="guestbook-wall"><div class="guestbook-page-switcher"><button class="gb-page-button" onclick="incrementPage(-1)">&lt;</button> <span id="gb-page-counter"></span> <button class="gb-page-button" onclick="incrementPage(+1)">&gt;</button></div>
-			
-				<noscript><div class="guestbook-entry">
-                    <div class="guestbook-entry-info">javascript required<div class="guestbook-entry-timestamp">whoopsies!</div></div>
-                    <div class="guestbook-entry-content">javascript is required for this page to work</div>
-                </div></noscript>
-			</div></main>
+		<main>
+			<div id="guestbook-main-container">
+				<div class="gb-conf-box">
+					<button id="conf-disabled-toggle" onclick="toggleGuestbook()">
+						disable</button
+					><button id="conf-readonly-toggle" onclick="toggleReadonly()">
+						enable readonly mode</button
+					><button id="conf-approval-toggle" onclick="toggleApproval()">
+						enable approval
+					</button>
+					<button onclick="toggleQueue()" id="conf-queue-toggle">
+						view queue
+					</button>
+				</div>
+				<div>
+					<p>meow</p>
+				</div>
+			</div>
+			<div class="guestbook-wall" id="guestbook-wall">
+				<div class="guestbook-page-switcher">
+					<button class="gb-page-button" onclick="incrementPage(-1)">
+						&lt;
+					</button>
+					<span id="gb-page-counter"></span>
+					<button class="gb-page-button" onclick="incrementPage(+1)">
+						&gt;
+					</button>
+				</div>
+				<div class="guestbook-entry" data-entryid="1">
+					<div class="guestbook-entry-info">name</div>
+					<div class="guestbook-entry-timestamp">id | date</div>
+					<div class="guestbook-entry-content">content</div>
+					<div class="guestbook-entry-options">
+						<button class="guestbook-entry-option">delete</button
+						><button class="guestbook-entry-option">edit</button
+						><button class="guestbook-entry-option">hide</button
+						><button class="guestbook-entry-option">reply</button>
+					</div>
+					<div class="guestbook-comment" data-for-id="1">
+						<div class="guestbook-comment-name">name</div>
+						meow
+						<div class="guestbook-comment-options">
+							<button class="guestbook-entry-option">delete</button
+							><button class="guestbook-entry-option">edit</button>
+						</div>
+					</div>
+				</div>
+				<div class="guestbook-entry">
+					<div class="guestbook-entry-info">name</div>
+					<div class="guestbook-entry-timestamp">id | date</div>
+					<div class="guestbook-entry-content">content</div>
+					<div class="guestbook-entry-options" data-for-id="2">
+						<button class="guestbook-entry-option">delete</button
+						><button class="guestbook-entry-option">edit</button
+						><button class="guestbook-entry-option">hide</button
+						><button class="guestbook-entry-option">reply</button>
+					</div>
+				</div>
+
+				<noscript
+					><div class="guestbook-entry">
+						<div class="guestbook-entry-info">
+							javascript required
+							<div class="guestbook-entry-timestamp">whoopsies!</div>
+						</div>
+						<div class="guestbook-entry-content">
+							javascript is required for this page to work
+						</div>
+					</div></noscript
+				>
+			</div>
+		</main>
 	</body>
-</script>
+	<script>
+		const entryForm = document.getElementById("guestbook-entry-form");
+		const guestbookWall = document.getElementById("guestbook-wall");
+		const entryName = document.getElementById("name-input");
+		const entryContent = document.getElementById("entry-input");
+		const entrySubmit = document.getElementById("guestbook-input-submit");
+		const maxPostCount = 15;
+		const admServicePath = "/services/guestbook/admin/gb";
+		let currentPage = 1;
+		let queueStatus = false;
+		const commentName = "comment";
+
+		// entryForm.addEventListener("submit", function (event) {
+		// 	event.preventDefault();
+		// 	const entryFormData = new FormData(entryForm);
+		// 	const entryName = entryFormData.get("name") || "anonymous";
+		// 	const entryContentText = entryFormData.get("content");
+
+		// 	submitGuestbookEntry(entryName, entryContentText);
+		// });
+
+		// async function submitGuestbookEntry(name, content) {
+		// 	const entryJson = JSON.stringify({ name: name, content: content });
+		// 	fetch(admServicePath, {
+		// 		method: "PUT",
+		// 		headers: { "Content-Type": "application/json" },
+		// 		body: entryJson,
+		// 	}).then((response) => {
+		// 		if (response.ok) {
+		// 			console.log("ya"); // MAKE THE BUTTON CHANGE !!
+		// 			entrySubmit.value = "submitted";
+		// 			setTimeout(() => {
+		// 				getGuestbookEntries(currentPage);
+		// 				entrySubmit.value = "submit";
+		// 			}, 1000);
+		// 		} else {
+		// 			console.log("na"); // MAKE THE BUTTON CHANGE AS WELL !!!
+		// 		}
+		// 	});
+		// }
+
+		function deleteGuestbookEntries(page, int, entryId) {
+			// const entryid =
+			// 	entryId < 15 && int != +1
+			// 		? entryId
+			// 		: int == +1
+			// 			? entryId + maxPostCount
+			// 			: entryId - maxPostCount;
+			// console.log(entryid, "meow");
+			try {
+				const meow = document.querySelectorAll(`div[data-entryid]`);
+				meow.forEach((elem) => {
+					elem.remove();
+				});
+			} catch (e) {}
+		}
+
+		async function getGuestbookEntries(page, int) {
+			try {
+				const response = await fetch(`${admServicePath}/posts`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ page: page, queue: queueStatus }),
+				});
+				if (response.ok) {
+					document.getElementById("gb-page-counter").innerText = currentPage;
+					const entryData = (await response.json()).reverse();
+
+					if (entryData != {}) {
+						deleteGuestbookEntries();
+
+						for (entry in entryData) {
+							n = entry;
+							entry = entryData[entry];
+
+							buildGuestbookEntry(
+								entry.name,
+								entry.content,
+								entry.entryId,
+								parseInt(entry.epoch),
+								entry.hidden,
+								entry.comment,
+							);
+						}
+					} else {
+						console.log("no");
+					}
+					console.log(entryData);
+				} else {
+					console.error();
+					console.log(response.status);
+					return response.body;
+				}
+			} catch (e) {
+				console.error("whoops!", e);
+			}
+		}
+
+		async function incrementPage(int) {
+			if ((currentPage == 1 && int != -1) || currentPage > 1) {
+				console.log("ya");
+
+				const response = await fetch(`${admServicePath}/posts`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ page: currentPage + 1 }),
+				});
+				console.log(response.status);
+				if (response.status == 200) {
+					int == "+1" ? currentPage++ : currentPage--;
+					getGuestbookEntries(currentPage, int);
+				} else {
+					if (int === -1) {
+						int == "+1" ? currentPage++ : currentPage--;
+						getGuestbookEntries(currentPage, int);
+					}
+				}
+			} else {
+				console.log("na");
+			}
+		}
+
+		function buildGuestbookEntry(
+			name,
+			content,
+			entryId,
+			epoch,
+			hidden,
+			comment = null,
+		) {
+			// console.log(name, content, entryId, epoch, comment);
+			const classes = {
+				entry: "guestbook-entry",
+				entryName: "guestbook-entry-info",
+				dateId: "guestbook-entry-timestamp",
+				content: "guestbook-entry-content",
+				comment_entry: "guestbook-comment",
+				comment_name: "guestbook-comment-name",
+				options: "guestbook-entry-options",
+				option: "guestbook-entry-option",
+			};
+			const entry = Object.assign(document.createElement("div"), {
+				className: classes.entry,
+			});
+			entry.setAttribute(`data-entryId`, entryId);
+			const entryName = Object.assign(document.createElement("div"), {
+				className: classes.entryName,
+				innerText: name,
+			});
+			const entryDateId = Object.assign(document.createElement("div"), {
+				className: classes.dateId,
+				innerText: `${entryId} | ${new Date(epoch).toLocaleDateString()} | ${queueStatus == false ? (hidden == 0 ? "visible" : "hidden") : "in queue"}`,
+				title: `ID: ${entryId} | POSTED: ${new Date(epoch).toDateString()}`,
+			});
+			const entryContent = Object.assign(document.createElement("div"), {
+				className: classes.content,
+				innerText: content,
+			});
+			entryContent.setAttribute("data-entrycontent", entryId);
+			const entryOptions = Object.assign(document.createElement("div"), {
+				className: classes.options,
+			});
+			entryOptions.setAttribute("data-for-id", entryId);
+			const deleteOption = Object.assign(document.createElement("button"), {
+				className: classes.option,
+				innerText: "delete",
+			});
+			const hideOption = Object.assign(document.createElement("button"), {
+				className: classes.option,
+				innerText: "hide",
+			});
+			const editOption = Object.assign(document.createElement("button"), {
+				className: classes.option,
+				innerText: "edit",
+			});
+			const replyOption = Object.assign(document.createElement("button"), {
+				className: classes.option,
+				innerText: "reply",
+			});
+
+			deleteOption.setAttribute(
+				"onclick",
+				`${queueStatus == 0 ? "deleteEntry(false, this.parentElement.dataset.forId)" : "manageQueue('delete', this.parentElement.dataset.forId)"}`,
+			);
+			hideOption.setAttribute(
+				"onclick",
+				"hideEntry(this.parentElement.dataset.forId)",
+			);
+			editOption.setAttribute(
+				"onclick",
+				`editEntry(false, this.parentElement.dataset.forId, this.parentElement.parentElement.querySelector('.guestbook-entry-content').innerText)`,
+			);
+			replyOption.setAttribute(
+				"onclick",
+				"replyEntry(this.parentElement.dataset.forId)",
+			);
+
+			entryOptions.appendChild(deleteOption);
+			entryOptions.appendChild(hideOption);
+			entryOptions.appendChild(editOption);
+			entryOptions.appendChild(replyOption);
+			if (queueStatus == true) {
+				const approveOption = Object.assign(document.createElement("button"), {
+					className: classes.option,
+					innerText: "approve",
+				});
+				approveOption.setAttribute(
+					"onclick",
+					`manageQueue('approve', this.parentElement.dataset.forId)`,
+				);
+				entryOptions.appendChild(approveOption);
+			}
+			// const entryCommentInfo = Object.assign(document.createElement("div"), {className: classes.comment_info})
+
+			entry.appendChild(entryName);
+			entry.appendChild(entryDateId);
+			entry.appendChild(entryContent);
+			entry.appendChild(entryOptions);
+			if (comment) {
+				const entryComment = Object.assign(document.createElement("div"), {
+					className: classes.comment_entry,
+				});
+				entryComment.setAttribute("data-comment-for-id", entryId);
+				const entryCommentName = Object.assign(document.createElement("div"), {
+					className: classes.comment_name,
+					innerText: commentName,
+				});
+				const entryCommentContent = Object.assign(
+					document.createElement("div"),
+					{ innerText: comment },
+				);
+				entryOptions.removeChild(replyOption);
+				entryOptions.removeChild(hideOption);
+				entryOptions.setAttribute("data-comment", entryId);
+				editOption.setAttribute(
+					"onclick",
+					"editEntry(true, this.parentElement.dataset.comment)",
+				);
+				deleteOption.setAttribute(
+					"onclick",
+					"deleteEntry(true, this.parentElement.dataset.comment)",
+				);
+
+				entryComment.appendChild(entryCommentName);
+				entryComment.appendChild(entryCommentContent);
+				entryComment.appendChild(entryOptions);
+				entry.appendChild(entryComment);
+			}
+
+			guestbookWall.insertBefore(entry, guestbookWall.firstChild);
+		}
+
+		async function deleteEntry(comment, id) {
+			await fetch(`${admServicePath}/manage`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					service: "entries",
+					method: "delete",
+					id: id,
+					comment: comment,
+				}),
+			});
+			location.reload();
+		}
+
+		async function editEntry(comment, id, current) {
+			const text = window.prompt("comment", current);
+			if (text != null) {
+				await fetch(`${admServicePath}/manage`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						service: "entries",
+						method: "edit",
+						id: id,
+						content: text,
+						comment: comment,
+					}),
+				});
+				location.reload();
+			}
+		}
+
+		async function hideEntry(id) {
+			await fetch(`${admServicePath}/manage`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ service: "entries", method: "hide", id: id }),
+			});
+			location.reload();
+		}
+
+		async function replyEntry(id) {
+			const comment = window.prompt("comment", "comment");
+			if (comment != null) {
+				await fetch(`${admServicePath}/manage`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						service: "entries",
+						method: "reply",
+						id: id,
+						content: comment,
+					}),
+				});
+				location.reload();
+			}
+			console.log(id);
+		}
+
+		async function manageQueue(action, id) {
+			await fetch(`${admServicePath}/manage`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ service: "queue", method: action, id: id }),
+			});
+		}
+
+		async function toggleGuestbook() {
+			await fetch(`${admServicePath}/configure`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ toggle: "disabled" }),
+			});
+			// await getStatus()
+			location.reload();
+		}
+		async function toggleReadonly() {
+			await fetch(`${admServicePath}/configure`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ toggle: "readonly" }),
+			});
+			// await getStatus()
+			location.reload();
+		}
+
+		async function toggleApproval() {
+			await fetch(`${admServicePath}/configure`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ toggle: "approval" }),
+			});
+			// await getStatus()
+			location.reload();
+		}
+
+		async function toggleQueue() {
+			queueStatus = !queueStatus;
+			getGuestbookEntries(currentPage);
+		}
+		async function getStatus() {
+			const response = await fetch(`${admServicePath}/status`);
+			const json = await response.json();
+			for (service in json) {
+				service = json[service];
+				const name = service["name"];
+				const status = service["status"];
+				console.log(json);
+				if (service["status"]) {
+					if (service["status"] == 0) {
+						if (service["name"] != "disabled") {
+							document.getElementById(`conf-${name}-toggle`).innerText =
+								`enable ${name}`;
+						} else {
+							document.getElementById(`conf-${name}-toggle`).innerText =
+								`disable`;
+						}
+					} else {
+						if (service["name"] != "disabled") {
+							document.getElementById(`conf-${name}-toggle`).innerText =
+								`disable ${name}`;
+						} else {
+							document.getElementById(`conf-${name}-toggle`).innerText =
+								`enable`;
+						}
+					}
+					// document.getElementById(`conf-${name}-toggle`).innerText = `${service['status'] == 0 ? service['name'] != 'disabled' ? 'enable' : 'disable' : service['name'] != 'disabled' ? 'disable' : 'enable'} ${service['name'] != 'disabled' ? service['name'] : ''}`
+				}
+			}
+		}
+
+		document.addEventListener(
+			"DOMContentLoaded",
+			getGuestbookEntries(currentPage),
+			getStatus(),
+		);
+	</script>
 </html>
 
 <!-- guestbook-wall, guestbook-entry, guestbook-entry-info, guestbook-entry-content, guestbook-entry-comment, guestbook-entry-comment-info, guestbook-entry-comment-content -->

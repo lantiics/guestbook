@@ -26,8 +26,8 @@
 				</div><button
 					type="submit"
 					value="submit"
-					onclick="const pwdObj = document.getElementById('pwd-input');
-                document.cookie= `admin=${pwdObj.value}; path=/`"
+					onclick="event.preventDefault(); pwdObj = document.getElementById('pwd-input');
+                document.cookie= `admin=${pwdObj.value}; path=/`;location.reload()"
 					id="guestbook-input-submit" ></button>
 			</form></div><div>
             </div>

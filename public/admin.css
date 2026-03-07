@@ -1,0 +1,133 @@
+#guestbook-main-container {
+	height: 280px;
+	width: 490px;
+	margin: 0 auto;
+	justify-content: center;
+	display: flexbox;
+	grid-template-rows: auto;
+	margin-top: 3rem;
+	padding: 6px;
+	background-color: red;
+}
+
+#entry-form-container {
+	display: grid;
+	padding: 2px;
+	gap: 9px;
+	width: 480px;
+}
+
+.guestbook-name-input {
+	width: 90%;
+	height: 30px;
+}
+
+.guestbook-content-input {
+	width: 90%;
+	resize: none;
+	outline: none;
+	border: none;
+	height: 130px;
+	position: relative;
+}
+
+.guestbook-box {
+}
+
+.guestbook-input {
+}
+
+#guestbook-entry-form {
+	background-color: red;
+}
+
+#guestbook-input-submit {
+	height: 30px;
+	width: 100px;
+}
+
+.guestbook-wall {
+	background-color: orange;
+	min-height: 80px;
+	width: 500px;
+	margin: 0 auto;
+	margin-top: 20px;
+	padding: 6px;
+	display: grid;
+	gap: 5px;
+}
+
+.guestbook-entry {
+	overflow-wrap: anywhere;
+	display: grid;
+	width: 97%;
+	margin: 0 auto;
+	padding-block: 4px;
+	padding-inline: 8px;
+	border-radius: 5px;
+	justify-self: start;
+	min-height: 5rem;
+	height: fit-content;
+	background-color: #10192b;
+}
+.guestbook-entry-info {
+	margin-left: 2px;
+	margin-top: 2px;
+	font-size: medium;
+	max-width: 65%;
+	padding: 2px;
+	width: fit-content;
+	height: fit-content;
+	border-color: aqua;
+	border-width: 3px;
+
+}
+.guestbook-entry-timestamp {
+	font-size: smaller;
+	position: absolute;
+	margin-top: 4px;
+	margin-right: 7px;
+	width: fit-content;
+	justify-self: right;
+}
+
+.gb-page-button {
+
+}
+
+.guestbook-page-switcher {
+	
+}
+
+.guestbook-comment {
+	background-color: darkblue;padding: 3px;margin-top:12px;margin-bottom: 4px;
+}
+
+.guestbook-comment-name {
+	margin-bottom:4px;color:orange;
+}
+
+.guestbook-entry-content {
+	font-size: medium;
+	margin-top: 5px;
+}
+
+.guestbook-entry-options {
+    /* background-color: purple; */
+    padding:3px;font-size:smaller;
+}
+
+.guestbook-entry-option {
+    margin-inline:3px;
+}
+
+.guestbook-option-textbox {
+
+}
+
+.gb-conf-box {
+    background-color: orange;display: flex; column-gap: 8px;padding:4px
+}
+.gb-conf-box button {
+    min-height:30px;
+}
