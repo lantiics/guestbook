@@ -6,7 +6,7 @@ const rateLimit = require("express-rate-limit").rateLimit;
 const db = new Database("./guestbook.db");
 const cookieParser = require("cookie-parser");
 app.use(cookieParser());
-const adminPass = "meow";
+const adminPass = process.env.GLOBAL_PASS ?? process.env.GB_ADMIN_PASS ?? Math.random() * (Math.random() * 1000) + (Math.random() * (Math.random() * 1000)).toString() + (Math.random() * (Math.random() * 1000)).toString() + (Math.random() * (Math.random() * 1000)).toString() + (Math.random() * (Math.random() * 1000)).toString() + (Math.random() * (Math.random() * 1000)).toString()
 const maxPageEntries = 15;
 
 const cookieValidation = (req, res, next) => {
@@ -26,6 +26,10 @@ app.use(
 	cookieValidation,
 	express.static(path.join(__dirname, "./admin/")),
 );
+
+function guestbookStatus(n) {
+	return db.prepare(`SELECT status FROM status WHERE name='${n}'`).get().status === 1
+}
 
 app.post("/gb/posts", cookieValidation, async (req, res) => {
 	const getEntries = await getGuestbookEntries(
@@ -48,8 +52,19 @@ app.post("/gb/manage", cookieValidation, async (req, res) => {
 
 app.post("/gb/configure", cookieValidation, async (req, res) => {
 	try {
+		if (guestbookStatus("disabled") && req.body['toggle']=='hidden') {
+			db.prepare(`UPDATE status SET status = NOT status WHERE name = 'disabled'`).run()
+		} else if (guestbookStatus("hidden") && req.body['toggle'] == 'disabled') {
+			db.prepare(`UPDATE status SET status = NOT status WHERE name = 'hidden'`).run()
+		} else if (guestbookStatus("readonly") && req.body['toggle'] == 'approval') {
+			db.prepare(`UPDATE status SET status = NOT status WHERE name = 'readonly'`).run()
+		} else if (guestbookStatus('approval') && req.body['toggle'] == 'readonly') {
+			db.prepare(`UPDATE status SET status = NOT status WHERE name = 'approval'`).run()
+		} 
+			
+		
 		db.prepare(`UPDATE status SET status = NOT status WHERE name = ?`).run(
-			req.body["toggle"],
+			req.body['toggle']
 		);
 		res.send(200);
 	} catch (e) {

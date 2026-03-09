@@ -117,8 +117,8 @@
     padding:3px;font-size:smaller;
 }
 
-.guestbook-entry-option {
-    margin-inline:3px;
+.gb-button {
+	margin-inline:3px;
 }
 
 .guestbook-option-textbox {

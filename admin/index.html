@@ -4,7 +4,6 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>woof</title>
-
 		<link rel="stylesheet" href="/admin.css" />
 		<link rel="stylesheet" href="/style.css" />
 	</head>
@@ -18,6 +17,9 @@
 						enable readonly mode</button
 					><button id="conf-approval-toggle" onclick="toggleApproval()">
 						enable approval
+					</button>
+					<button id="conf-hidden-toggle" onclick="toggleHidden()">
+						hide entries
 					</button>
 					<button onclick="toggleQueue()" id="conf-queue-toggle">
 						view queue
@@ -42,31 +44,21 @@
 					<div class="guestbook-entry-timestamp">id | date</div>
 					<div class="guestbook-entry-content">content</div>
 					<div class="guestbook-entry-options">
-						<button class="guestbook-entry-option">delete</button
-						><button class="guestbook-entry-option">edit</button
-						><button class="guestbook-entry-option">hide</button
-						><button class="guestbook-entry-option">reply</button>
+						<button class="gb-button">delete</button
+						><button class="gb-button">edit</button
+						><button class="gb-button">hide</button
+						><button class="gb-button">reply</button>
 					</div>
 					<div class="guestbook-comment" data-for-id="1">
 						<div class="guestbook-comment-name">name</div>
 						meow
 						<div class="guestbook-comment-options">
-							<button class="guestbook-entry-option">delete</button
-							><button class="guestbook-entry-option">edit</button>
+							<button class="gb-button">delete</button
+							><button class="gb-button">edit</button>
 						</div>
 					</div>
 				</div>
-				<div class="guestbook-entry">
-					<div class="guestbook-entry-info">name</div>
-					<div class="guestbook-entry-timestamp">id | date</div>
-					<div class="guestbook-entry-content">content</div>
-					<div class="guestbook-entry-options" data-for-id="2">
-						<button class="guestbook-entry-option">delete</button
-						><button class="guestbook-entry-option">edit</button
-						><button class="guestbook-entry-option">hide</button
-						><button class="guestbook-entry-option">reply</button>
-					</div>
-				</div>
+
 
 				<noscript
 					><div class="guestbook-entry">
@@ -221,7 +213,7 @@
 				comment_entry: "guestbook-comment",
 				comment_name: "guestbook-comment-name",
 				options: "guestbook-entry-options",
-				option: "guestbook-entry-option",
+				option: "gb-button",
 			};
 			const entry = Object.assign(document.createElement("div"), {
 				className: classes.entry,
@@ -420,6 +412,15 @@
 			location.reload();
 		}
 
+		async function toggleHidden() {
+			await fetch(`${admServicePath}/configure`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ toggle: "hidden" })
+			})
+			location.reload()
+		}
+
 		async function toggleApproval() {
 			await fetch(`${admServicePath}/configure`, {
 				method: "POST",
@@ -444,20 +445,20 @@
 				console.log(json);
 				if (service["status"]) {
 					if (service["status"] == 0) {
-						if (service["name"] != "disabled") {
+						if (service["name"] != "disabled" && service["name"]!="hidden") {
 							document.getElementById(`conf-${name}-toggle`).innerText =
 								`enable ${name}`;
 						} else {
 							document.getElementById(`conf-${name}-toggle`).innerText =
-								`disable`;
+								service["name"] == "disabled" ? "disable" : "hide entries";
 						}
 					} else {
-						if (service["name"] != "disabled") {
+						if (service["name"] != "disabled" && service["name"]!="hidden") {
 							document.getElementById(`conf-${name}-toggle`).innerText =
 								`disable ${name}`;
 						} else {
 							document.getElementById(`conf-${name}-toggle`).innerText =
-								`enable`;
+								service["name"] == "disabled" ? "enable" : "show entries";
 						}
 					}
 					// document.getElementById(`conf-${name}-toggle`).innerText = `${service['status'] == 0 ? service['name'] != 'disabled' ? 'enable' : 'disable' : service['name'] != 'disabled' ? 'disable' : 'enable'} ${service['name'] != 'disabled' ? service['name'] : ''}`

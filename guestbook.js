@@ -17,7 +17,7 @@ db.exec(
     CREATE TABLE IF NOT EXISTS status (
     name TEXT UNIQUE, status BOOLEAN, int INTEGER, text TEXT);
     INSERT OR IGNORE INTO status (name, status)
-    VALUES ('disabled', 0), ('readonly', 0), ('approval', 0); INSERT OR IGNORE INTO status (name, int) VALUES ('posts', 0);
+    VALUES ('disabled', 0), ('readonly', 0), ('approval', 0), ('hidden', 0); INSERT OR IGNORE INTO status (name, int) VALUES ('posts', 0);
     CREATE TABLE IF NOT EXISTS queue (
     name TEXT, content TEXT, entryId INT, comment TEXT, hidden BOOLEAN, epoch TEXT);`,
 );
@@ -51,7 +51,7 @@ const guestbookRequiresApproval =
 		: true;
 
 function guestbookStatus(n) {
-	return db.prepare(`SELECt status FROM status WHERE name='${n}'`).get().status === 1
+	return db.prepare(`SELECT status FROM status WHERE name='${n}'`).get().status === 1
 }
 
 console.log(guestbookStatus("approval"));
@@ -61,8 +61,21 @@ const maxPageEntries = 15;
 const maxNameLength = 50;
 const maxContentLength = 200;
 
+app.get("/status", async (req, res) => {
+	let json = {}
+	const prep = db.prepare(`SELECT name, status FROM status WHERE name IS NOT 'posts'`).all(); 
+	for (bool in prep) {
+		if (prep[bool].status != 0) {json[prep[bool].name]=prep[bool].status}
+	}
+	if (Object.keys(json).length) {
+		res.json(json)
+	} else {
+		res.json({ "normal": 1 })
+	}
+})
+
 app.post("/", async (req, res) => {
-	if (!(await guestbookStatus("disabled"))) {
+	if (!(await guestbookStatus("hidden"))&& !(await guestbookStatus("disabled"))) {
 		const getEntries = await getGuestbookEntries(req.body["page"] - 1);
 
 		console.log(getEntries);
@@ -75,7 +88,7 @@ app.post("/", async (req, res) => {
 		res.json([
 			{
 				name: "Guestbook unavailable",
-				content: "Guestbook is currently disabled and posts are not shown.",
+				content: guestbookStatus('disabled') == false ? "Guestbook posts are currently hidden. Submitted posts will be queued." : "Guestbook is currently disabled. Posts are not shown and can not be submitted.",
 				entryId: "1",
 				epoch: `${Date.now()}`,
 			},
@@ -163,7 +176,7 @@ async function addEntryToGuestbook(name, content, epoch) {
 	try {
 		if (name.length < maxNameLength && content.length < maxContentLength) {
 			db.prepare(
-				`INSERT INTO ${guestbookStatus("approval") === false ? "entries" : "queue"} VALUES (?, ?, ?, ?, ?, ?)`,
+				`INSERT INTO ${guestbookStatus("approval") === false ? guestbookStatus("hidden") === false ? "entries" : "queue" : "queue"} VALUES (?, ?, ?, ?, ?, ?)`,
 			).run(name, content, getGuestbookEntryCount(), null, 0, epoch);
 			db.prepare(`UPDATE status SET int = int + 1 WHERE name='posts'`).run();
 			return guestbookStatus("approval") === false ? 1 : 2;

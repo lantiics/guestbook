@@ -37,6 +37,10 @@
 .guestbook-input {
 }
 
+.guestbook-status {
+	background-color:#10192b;padding:5px;
+}
+
 #guestbook-entry-form {
 	background-color: red;
 }
@@ -91,6 +95,9 @@
 	justify-self: right;
 }
 
+.gb-button {
+	margin-inline:3px;
+}
 .gb-page-button {
 
 }

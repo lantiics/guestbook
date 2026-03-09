@@ -162,4 +162,21 @@ function buildGuestbookEntry(name, content, entryId, epoch, comment = null) {
 	guestbookWall.insertBefore(entry, guestbookWall.firstChild);
 }
 
-document.addEventListener("DOMContentLoaded", getGuestbookEntries(currentPage));
+async function getGuestbookStatus() {
+	const guestbookStatusPath = "/services/guestbook/status";
+	const response = await fetch(guestbookStatusPath)
+	const statusDiv = document.getElementById("guestbook-status")
+	const jsonResponse = await response.json()
+	if (!jsonResponse['normal']) {
+		console.log('OH NO')
+			if (jsonResponse["approval"]) {
+				statusDiv.innerText = 'New entries currently require approval, and will be sent into a queue upon submission.'}
+			else if (jsonResponse["readonly"]) {
+				statusDiv.innerText = 'Guestbook is currently read-only and new entries cannot be submitted.'
+			}
+
+		
+	}
+}
+
+document.addEventListener("DOMContentLoaded", getGuestbookEntries(currentPage), getGuestbookStatus());
