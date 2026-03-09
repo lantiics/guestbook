@@ -2,11 +2,12 @@ const express = require("express");
 const Database = require("better-sqlite3");
 const path = require("path");
 const app = express();
+require("dotenv").config({ path: [".env.local"] });
 const rateLimit = require("express-rate-limit").rateLimit;
 const db = new Database("./guestbook.db");
 const cookieParser = require("cookie-parser");
 app.use(cookieParser());
-const adminPass = process.env.GLOBAL_PASS ?? process.env.GB_ADMIN_PASS ?? Math.random() * (Math.random() * 1000) + (Math.random() * (Math.random() * 1000)).toString() + (Math.random() * (Math.random() * 1000)).toString() + (Math.random() * (Math.random() * 1000)).toString() + (Math.random() * (Math.random() * 1000)).toString() + (Math.random() * (Math.random() * 1000)).toString()
+const adminPass = (process.env.GLOBAL_PASS ?? process.env.GB_ADMIN_PASS) ?? Math.random() * (Math.random() * 1000) + (Math.random() * (Math.random() * 1000)).toString() + (Math.random() * (Math.random() * 1000)).toString() + (Math.random() * (Math.random() * 1000)).toString() + (Math.random() * (Math.random() * 1000)).toString() + (Math.random() * (Math.random() * 1000)).toString()
 const maxPageEntries = 15;
 
 const cookieValidation = (req, res, next) => {

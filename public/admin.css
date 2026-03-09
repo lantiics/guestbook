@@ -7,29 +7,9 @@
 	grid-template-rows: auto;
 	margin-top: 3rem;
 	padding: 6px;
-	background-color: red;
+	background-color: #081020;
 }
 
-#entry-form-container {
-	display: grid;
-	padding: 2px;
-	gap: 9px;
-	width: 480px;
-}
-
-.guestbook-name-input {
-	width: 90%;
-	height: 30px;
-}
-
-.guestbook-content-input {
-	width: 90%;
-	resize: none;
-	outline: none;
-	border: none;
-	height: 130px;
-	position: relative;
-}
 
 .guestbook-box {
 }
@@ -37,9 +17,7 @@
 .guestbook-input {
 }
 
-#guestbook-entry-form {
-	background-color: red;
-}
+
 
 #guestbook-input-submit {
 	height: 30px;
@@ -47,7 +25,7 @@
 }
 
 .guestbook-wall {
-	background-color: orange;
+	background-color: #081020;
 	min-height: 80px;
 	width: 500px;
 	margin: 0 auto;
@@ -119,6 +97,8 @@
 
 .gb-button {
 	margin-inline:3px;
+		background-color: #081020;
+	border:none;color:#e3e3e3;
 }
 
 .guestbook-option-textbox {
@@ -126,7 +106,7 @@
 }
 
 .gb-conf-box {
-    background-color: orange;display: flex; column-gap: 8px;padding:4px
+    background-color: #17233e;display: flex; column-gap: 8px;padding:6px;border-radius: 8px;
 }
 .gb-conf-box button {
     min-height:30px;
